@@ -51,6 +51,7 @@ func init() {
 	rootCmd.Flags().StringP("password", "p", "", "(optional) Backup decryption password")
 	rootCmd.Flags().StringP("output", "o", "", "(optional) Output directory path")
 	rootCmd.Flags().StringP("file", "f", "", "(optional) Name or substring of a single file to extract and decrypt")
+	rootCmd.Flags().StringP("filter", "F", "", "(optional) Substring to match multiple files for extraction and decryption")
 	rootCmd.Flags().BoolP("relative", "r", false, "(optional) Output decrypted files using the original file structure")
 }
 
@@ -151,14 +152,20 @@ func runBackupExtraction(cmd *cobra.Command) error {
 		return err
 	}
 
+	// 7.5. Check if a filter is specified.
+	filter, err := cmd.Flags().GetString("filter")
+	if err != nil {
+		return err
+	}
+
 	// 7. Check if a target file is specified.
 	relative, err := cmd.Flags().GetBool("relative")
 	if err != nil {
 		return err
 	}
 
-	// 8. Process files from the manifest: either extract all or a single specific file.
-	if err := backup.ProcessFiles(manifestDBPath, backupPath, kb, outDir, s, targetFile, relative); err != nil {
+	// 8. Process files from the manifest: either extract all, a single specific file, or filtered files.
+	if err := backup.ProcessFiles(manifestDBPath, backupPath, kb, outDir, s, targetFile, filter, relative); err != nil {
 		return err
 	}
 

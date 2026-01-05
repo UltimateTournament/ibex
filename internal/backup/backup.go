@@ -163,7 +163,8 @@ func PrepareOutputDirectory(cmd *cobra.Command, backupPath string) (string, erro
 // processFiles opens the decrypted manifest DB and decrypts files.
 // If targetFile is non-empty, it extracts only the first file whose relative path
 // contains the target substring.
-func ProcessFiles(manifestDBPath, backupPath string, kb *types.Keybag, outDir string, s *spin.Spinner, targetFile string, relative bool) error {
+// If filter is non-empty, it extracts all files whose relative path contains the substring.
+func ProcessFiles(manifestDBPath, backupPath string, kb *types.Keybag, outDir string, s *spin.Spinner, targetFile string, filter string, relative bool) error {
 	db, err := manifest.OpenManifestDB(manifestDBPath)
 	if err != nil {
 		slog.Error("Error opening Decrypted_Manifest.db", "Error", err)
@@ -194,6 +195,11 @@ func ProcessFiles(manifestDBPath, backupPath string, kb *types.Keybag, outDir st
 
 		// If a target file filter was supplied, skip files that do not match.
 		if targetFile != "" && !strings.Contains(relativePath, targetFile) {
+			continue
+		}
+
+		// If a filter was supplied, skip files that do not match.
+		if filter != "" && !strings.Contains(relativePath, filter) {
 			continue
 		}
 
@@ -283,11 +289,13 @@ func ProcessFiles(manifestDBPath, backupPath string, kb *types.Keybag, outDir st
 		return err
 	}
 
-	if targetFile != "" && !found {
-		slog.Error("unable to locate target file in backup",
-			"targetFile", targetFile)
+	if (targetFile != "" || filter != "") && !found {
+		if targetFile != "" {
+			slog.Error("unable to locate target file in backup", "targetFile", targetFile)
+		} else {
+			slog.Error("unable to locate any files matching filter in backup", "filter", filter)
+		}
 		return err
-		//return fmt.Errorf("unable to locate target file in backup: %s", targetFile)
 	}
 
 	return nil
